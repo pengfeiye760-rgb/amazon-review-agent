@@ -15,9 +15,19 @@ def load_memory():
 
 
 def validate_schema(df: pd.DataFrame):
-    """Check whether the uploaded CSV contains the minimum required columns."""
-    required_columns = ["review_id", "rating", "review_title", "customer_comment"]
+    """
+    Check whether the uploaded CSV contains the minimum required columns.
+
+    The agent is allowed to recover from minor schema differences:
+    - case_id can be used instead of review_id
+    - review_title is optional and can be filled as empty text
+    """
+    required_columns = ["rating", "customer_comment"]
     missing_columns = [col for col in required_columns if col not in df.columns]
+
+    has_review_id = "review_id" in df.columns or "case_id" in df.columns
+    if not has_review_id:
+        missing_columns.append("review_id or case_id")
 
     return {
         "is_valid": len(missing_columns) == 0,
@@ -136,6 +146,9 @@ def classify_review_by_rules(text):
                 "wouldn't grind",
                 "would not grind",
                 "se daño",
+                "se dano",
+                "dañó",
+                "dano",
             ],
             0.86,
         ),
@@ -294,8 +307,20 @@ def classify_review_by_rules(text):
 
 
 def classify_reviews(df: pd.DataFrame):
-    """Classify all reviews and return a new dataframe with agent outputs."""
+    """
+    Classify all reviews and return a new dataframe with agent outputs.
+
+    This function also performs light schema recovery:
+    - If review_id is missing but case_id exists, case_id is copied into review_id.
+    - If review_title is missing, it is filled with an empty string.
+    """
     result_df = df.copy()
+
+    if "review_id" not in result_df.columns and "case_id" in result_df.columns:
+        result_df["review_id"] = result_df["case_id"]
+
+    if "review_title" not in result_df.columns:
+        result_df["review_title"] = ""
 
     combined_texts = result_df.apply(combine_review_text, axis=1)
     classifications = combined_texts.apply(classify_review_by_rules)
@@ -312,6 +337,9 @@ def compute_category_statistics(classified_df: pd.DataFrame):
     """Compute category counts and percentages using pandas."""
     total = len(classified_df)
 
+    if total == 0:
+        return pd.DataFrame(columns=["category", "count", "percentage"])
+
     stats = (
         classified_df["agent_category"]
         .value_counts()
@@ -327,11 +355,26 @@ def extract_evidence_examples(classified_df: pd.DataFrame, max_examples_per_cate
     """Extract representative review examples for each category."""
     examples = {}
 
+    required_display_columns = [
+        "review_id",
+        "rating",
+        "review_title",
+        "customer_comment",
+        "agent_evidence",
+    ]
+
+    for col in required_display_columns:
+        if col not in classified_df.columns:
+            classified_df[col] = ""
+
     for category in classified_df["agent_category"].unique():
-        subset = classified_df[classified_df["agent_category"] == category].head(max_examples_per_category)
-        examples[category] = subset[
-            ["review_id", "rating", "review_title", "customer_comment", "agent_evidence"]
-        ].to_dict(orient="records")
+        subset = classified_df[
+            classified_df["agent_category"] == category
+        ].head(max_examples_per_category)
+
+        examples[category] = subset[required_display_columns].to_dict(
+            orient="records"
+        )
 
     return examples
 
