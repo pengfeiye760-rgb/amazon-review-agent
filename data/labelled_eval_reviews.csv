@@ -1,0 +1,31 @@
+﻿eval_id,review_title_or_signal,customer_comment,human_label,sentiment
+E001,Battery/charging,Pepper grinder stopped working after about two weeks; different cables and outlets did not help.,stopped_working,negative
+E002,Charging base,"Charging base no longer works, but each grinder can still be charged individually.",charging_base_failure,negative
+E003,Charging pin,Charging pin spring got stuck and no longer contacts the charger.,charging_base_failure,negative
+E004,Charging prongs,"One charging prong stuck in a retracted position, so the grinder cannot charge on the base.",charging_base_failure,negative
+E005,Charger stopped,"Worked well at first, but the charger stopped working.",charging_failure,negative
+E006,Base charging sensor,Charging base sensors are faulty and stop charging one grinder.,charging_base_failure,negative
+E007,Direct charging failure,Base stopped charging and direct charging one unit also stopped.,charging_failure,negative
+E008,Stopped recharging,"After three months, the grinders stopped charging even with other cords.",charging_failure,negative
+E009,One unit broke,"One unit broke, so the reviewer does not recommend it.",stopped_working,negative
+E010,Coarseness issue,Salt and pepper do not grind fine enough even at the finest setting.,grinding_coarseness_issue,negative
+E011,Salt crystals stuck,Salt crystals sometimes get stuck during grinding.,grinding_stuck_issue,negative
+E012,Peppercorn trouble,Peppercorn grinding is variable and may require shaking and restarting.,grinding_stuck_issue,negative
+E013,Pepper gets stuck,Pepper gets stuck a lot.,grinding_stuck_issue,negative
+E014,Messy dispensing,Dispenses too much salt and leaves salt or pepper in the cradle after use.,messy_dispensing,negative
+E015,Cheap build,"Product feels cheap, not solid, and not sturdy.",build_quality_issue,negative
+E016,Finish stains,Matte finish developed permanent oil spots and blemishes.,finish_staining_issue,negative
+E017,Small capacity,Filling is difficult and the compartments do not hold much salt or pepper.,capacity_refill_issue,negative
+E018,Button placement,"Front button is bumped accidentally when handling the grinder, causing mess.",button_placement_issue,negative
+E019,Weak battery life,Battery life gets weak quickly and requires frequent charging.,battery_life_short,negative
+E020,Positive charge,Holds a charge for a very long time and works flawlessly.,positive_battery,positive
+E021,Positive design,"Sleek modern design, easy to use and refill, strong battery life.",positive_design,positive
+E022,Arthritis friendly,Push-button operation helps users who struggle with manual grinding.,accessibility_positive,positive
+E023,Reliable salt grinding,Handles salt reliably after cheaper models failed.,positive_grinding,positive
+E024,Customer service,Support sent a replacement quickly when one grinder stopped working.,customer_service_positive,positive
+E025,Good coarseness range,Coarseness adjustments are easy to access and offer a good range.,positive_grinding,positive
+E026,Quiet and efficient,Quiet compared with other grinders and dispenses the right amount.,positive_performance,positive
+E027,Fine after adjustment,Fine grind is possible after adjusting the bottom dial.,positive_grinding,positive
+E028,No charge indicator,Only downside is that it does not show the battery percentage.,missing_charge_indicator,mixed
+E029,Charger compatibility,Product may require included low-amp charger; phone chargers may not work.,charger_compatibility,mixed
+E030,Good but vague,Good product.,unknown,neutral
