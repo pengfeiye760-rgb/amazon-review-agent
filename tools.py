@@ -412,3 +412,316 @@ def generate_qc_recommendations(stats_df: pd.DataFrame):
             )
 
     return recommendations
+
+def infer_voc_theme(category):
+    """Map agent category to a higher-level VOC theme."""
+    theme_map = {
+        "charging_failure": "Power & Charging",
+        "charging_base_failure": "Power & Charging",
+        "charging_pin_contact_issue": "Power & Charging",
+        "battery_life_issue": "Power & Charging",
+        "stopped_working": "Reliability & Durability",
+        "grinding_power_issue": "Grinding Performance",
+        "coarseness_adjustment_issue": "Grinding Performance",
+        "salt_or_pepper_jamming": "Grinding Performance",
+        "messy_dispensing": "Usability & Mess Control",
+        "small_capacity_or_refill_issue": "Refill, Capacity & Cleaning",
+        "material_or_build_quality_issue": "Build Quality & Perceived Value",
+        "surface_stain_issue": "Appearance & Surface Finish",
+        "positive_feedback": "Positive Experience",
+        "customer_service_positive": "Customer Service",
+        "unknown": "Unknown / Needs Review",
+    }
+
+    return theme_map.get(category, "Unknown / Needs Review")
+
+
+def infer_voc_sub_issue(category, evidence):
+    """Generate a more specific VOC sub-issue label."""
+    evidence = clean_text(evidence)
+
+    if category == "charging_failure":
+        return "Direct charging failure / no recharge"
+    if category == "charging_base_failure":
+        return "Charging dock or base failure"
+    if category == "charging_pin_contact_issue":
+        return "Charging pin contact or spring tolerance issue"
+    if category == "battery_life_issue":
+        return "Weak battery retention or short usage time"
+    if category == "stopped_working":
+        return "Early-life product failure"
+    if category == "grinding_power_issue":
+        return "Weak grinding torque or slow grinding"
+    if category == "coarseness_adjustment_issue":
+        return "Inconsistent fine/coarse adjustment"
+    if category == "salt_or_pepper_jamming":
+        return "Salt or pepper jamming during use"
+    if category == "messy_dispensing":
+        return "Uncontrolled dispensing or residue mess"
+    if category == "small_capacity_or_refill_issue":
+        return "Small capacity, refill difficulty, or cleaning difficulty"
+    if category == "material_or_build_quality_issue":
+        return "Cheap, flimsy, or low-value material perception"
+    if category == "surface_stain_issue":
+        return "Surface staining or finish durability issue"
+    if category == "customer_service_positive":
+        return "Positive replacement or support experience"
+    if category == "positive_feedback":
+        return "Positive design, usability, or value feedback"
+
+    if len(evidence) < 8:
+        return "Insufficient evidence"
+
+    return "Unclear issue requiring manual review"
+
+
+def infer_sentiment(category, rating):
+    """Infer review sentiment from category and rating."""
+    try:
+        rating_value = float(rating)
+    except Exception:
+        rating_value = None
+
+    if category in ["positive_feedback", "customer_service_positive"]:
+        return "positive"
+
+    if category == "unknown":
+        if rating_value is not None and rating_value >= 4:
+            return "unclear_positive"
+        if rating_value is not None and rating_value <= 2:
+            return "unclear_negative"
+        return "unknown"
+
+    if rating_value is not None:
+        if rating_value <= 2:
+            return "strong_negative"
+        if rating_value == 3:
+            return "mixed_or_moderate_negative"
+
+    return "negative"
+
+
+def infer_severity(category, rating, confidence):
+    """Infer severity level for VOC prioritisation."""
+    critical_categories = {
+        "charging_failure",
+        "charging_base_failure",
+        "charging_pin_contact_issue",
+        "stopped_working",
+    }
+
+    high_categories = {
+        "battery_life_issue",
+        "grinding_power_issue",
+        "coarseness_adjustment_issue",
+        "salt_or_pepper_jamming",
+    }
+
+    try:
+        rating_value = float(rating)
+    except Exception:
+        rating_value = None
+
+    if category in ["positive_feedback", "customer_service_positive"]:
+        return "low"
+
+    if category == "unknown":
+        return "review_needed"
+
+    if category in critical_categories:
+        if rating_value is not None and rating_value <= 2:
+            return "critical"
+        return "high"
+
+    if category in high_categories:
+        if rating_value is not None and rating_value <= 2:
+            return "high"
+        return "medium"
+
+    if rating_value is not None and rating_value <= 2:
+        return "high"
+
+    if confidence < 0.6:
+        return "review_needed"
+
+    return "medium"
+
+
+def infer_customer_pain_point(category):
+    """Describe customer pain point in business language."""
+    pain_point_map = {
+        "charging_failure": "Customer cannot recharge the product reliably.",
+        "charging_base_failure": "Customer loses confidence in the charging dock or base.",
+        "charging_pin_contact_issue": "Customer must adjust the grinder to make charging contact.",
+        "battery_life_issue": "Customer experiences short battery life or frequent recharging.",
+        "stopped_working": "Customer experiences early product failure after limited use.",
+        "grinding_power_issue": "Customer perceives the grinder as weak, slow, or ineffective.",
+        "coarseness_adjustment_issue": "Customer cannot achieve the expected grind size.",
+        "salt_or_pepper_jamming": "Customer has to shake, restart, or clear stuck ingredients.",
+        "messy_dispensing": "Customer experiences uncontrolled salt/pepper output or mess.",
+        "small_capacity_or_refill_issue": "Customer finds refill, capacity, or cleaning inconvenient.",
+        "material_or_build_quality_issue": "Customer perceives the product as cheap or not worth the price.",
+        "surface_stain_issue": "Customer sees visible stains or surface marks after normal use.",
+        "positive_feedback": "Customer values the product design, convenience, and usability.",
+        "customer_service_positive": "Customer values responsive support or replacement service.",
+        "unknown": "Customer feedback is too vague or insufficient for reliable classification.",
+    }
+
+    return pain_point_map.get(category, "Customer issue requires manual review.")
+
+
+def infer_root_cause_hypothesis(category):
+    """Generate possible root-cause hypotheses for supplier discussion."""
+    root_cause_map = {
+        "charging_failure": "USB-C charging circuit, charging indicator, cable compatibility, or battery charging control may be unstable.",
+        "charging_base_failure": "Dock alignment, charging base PCB, magnetic positioning, or dual-unit base reliability may be inconsistent.",
+        "charging_pin_contact_issue": "Spring-loaded pins may have weak rebound, poor tolerance, contamination risk, or insufficient contact pressure.",
+        "battery_life_issue": "Battery capacity, charging/discharging cycle quality, or standby drain may not meet expectation.",
+        "stopped_working": "Motor, PCB, switch, wiring, or early-life assembly reliability may need stress testing.",
+        "grinding_power_issue": "Motor torque, burr friction, ingredient load, or gear transmission may be insufficient.",
+        "coarseness_adjustment_issue": "Burr adjustment tolerance, ceramic burr alignment, or calibration range may be inconsistent.",
+        "salt_or_pepper_jamming": "Ingredient channel design, burr gap, or salt crystal compatibility may cause blockage.",
+        "messy_dispensing": "Button sensitivity, output control, residue leakage, or grinder orientation may need redesign.",
+        "small_capacity_or_refill_issue": "Container volume, refill opening, or cleaning access may be inconvenient.",
+        "material_or_build_quality_issue": "Housing material, weight, finish, or perceived value may not match price expectation.",
+        "surface_stain_issue": "Matte coating or surface treatment may lack oil and moisture resistance.",
+        "positive_feedback": "Design, one-hand operation, appearance, and convenience are likely selling points.",
+        "customer_service_positive": "Replacement and support process can reduce dissatisfaction risk.",
+        "unknown": "Root cause cannot be inferred without clearer customer evidence.",
+    }
+
+    return root_cause_map.get(category, "Root cause requires manual investigation.")
+
+
+def infer_business_impact(category, severity):
+    """Estimate business impact for prioritisation."""
+    if severity == "critical":
+        return "High return risk and rating damage"
+    if severity == "high":
+        return "Likely negative review driver"
+    if severity == "medium":
+        return "Usability or satisfaction risk"
+    if severity == "review_needed":
+        return "Needs manual review before action"
+    if category in ["positive_feedback", "customer_service_positive"]:
+        return "Can be used as selling point or retention signal"
+
+    return "Low immediate risk"
+
+
+def add_voc_fields(classified_df: pd.DataFrame):
+    """
+    Add VOC-level analysis fields to classified review results.
+
+    VOC fields include:
+    - theme
+    - sub-issue
+    - sentiment
+    - severity
+    - customer pain point
+    - root-cause hypothesis
+    - business impact
+    """
+    voc_df = classified_df.copy()
+
+    voc_df["voc_theme"] = voc_df["agent_category"].apply(infer_voc_theme)
+
+    voc_df["voc_sub_issue"] = voc_df.apply(
+        lambda row: infer_voc_sub_issue(
+            row.get("agent_category", "unknown"),
+            row.get("agent_evidence", ""),
+        ),
+        axis=1,
+    )
+
+    voc_df["voc_sentiment"] = voc_df.apply(
+        lambda row: infer_sentiment(
+            row.get("agent_category", "unknown"),
+            row.get("rating", None),
+        ),
+        axis=1,
+    )
+
+    voc_df["voc_severity"] = voc_df.apply(
+        lambda row: infer_severity(
+            row.get("agent_category", "unknown"),
+            row.get("rating", None),
+            row.get("agent_confidence", 0),
+        ),
+        axis=1,
+    )
+
+    voc_df["customer_pain_point"] = voc_df["agent_category"].apply(
+        infer_customer_pain_point
+    )
+
+    voc_df["root_cause_hypothesis"] = voc_df["agent_category"].apply(
+        infer_root_cause_hypothesis
+    )
+
+    voc_df["business_impact"] = voc_df.apply(
+        lambda row: infer_business_impact(
+            row.get("agent_category", "unknown"),
+            row.get("voc_severity", "review_needed"),
+        ),
+        axis=1,
+    )
+
+    return voc_df
+
+
+def compute_voc_summary(voc_df: pd.DataFrame):
+    """Compute VOC summary by theme, sub-issue, severity, and sentiment."""
+    if voc_df is None or voc_df.empty:
+        return {
+            "theme_summary": pd.DataFrame(),
+            "sub_issue_summary": pd.DataFrame(),
+            "severity_summary": pd.DataFrame(),
+            "sentiment_summary": pd.DataFrame(),
+        }
+
+    total = len(voc_df)
+
+    theme_summary = (
+        voc_df["voc_theme"]
+        .value_counts()
+        .reset_index()
+    )
+    theme_summary.columns = ["voc_theme", "count"]
+    theme_summary["percentage"] = (theme_summary["count"] / total * 100).round(2)
+
+    sub_issue_summary = (
+        voc_df[["voc_theme", "voc_sub_issue"]]
+        .value_counts()
+        .reset_index(name="count")
+    )
+    sub_issue_summary["percentage"] = (
+        sub_issue_summary["count"] / total * 100
+    ).round(2)
+
+    severity_summary = (
+        voc_df["voc_severity"]
+        .value_counts()
+        .reset_index()
+    )
+    severity_summary.columns = ["voc_severity", "count"]
+    severity_summary["percentage"] = (
+        severity_summary["count"] / total * 100
+    ).round(2)
+
+    sentiment_summary = (
+        voc_df["voc_sentiment"]
+        .value_counts()
+        .reset_index()
+    )
+    sentiment_summary.columns = ["voc_sentiment", "count"]
+    sentiment_summary["percentage"] = (
+        sentiment_summary["count"] / total * 100
+    ).round(2)
+
+    return {
+        "theme_summary": theme_summary,
+        "sub_issue_summary": sub_issue_summary,
+        "severity_summary": severity_summary,
+        "sentiment_summary": sentiment_summary,
+    }
