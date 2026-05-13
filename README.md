@@ -178,7 +178,18 @@ It follows an agent-style workflow:
 
 ## Demo Video
 
-Demo video link: To be added.
+Demo video link: [Amazon Review Analysis Agent Demo Video](https://drive.google.com/file/d/11XfccXMjXYekxnwbrLMJ0vCKbVy1_WSJ/view?usp=sharing)
+
+The demo video shows the working prototype, including:
+
+- The GitHub repository and README instructions
+- The Streamlit web interface
+- CSV review input
+- Agent observation and decision-making
+- VOC-level review analysis
+- Review classification results
+- Quality-control recommendations
+- Labelled evaluation with taxonomy-aligned accuracy
 
 ---
 
